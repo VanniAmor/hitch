@@ -7,14 +7,18 @@ use Qiniu\Auth;
 use Qiniu\Storage\UploadManager;
 use App\Model\Images\Images;
 use Illuminate\Support\Facades\Auth as SysAuth;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+
 
 //图片上传类
-class ImageUploader extends Job
+class ImageUploader implements ShouldQueue
 {
-
+    use InteractsWithQueue, Queueable;
 	protected $ACCESS_KEY = 'YBEYWaqwXhGNpNIuEOsuSyLtQ0i0b34gobjSYsKL';
 	protected $SECRET_KEY = '3BCpdcLZZ3wXw-l5psmu-D8RHjnmmlJnciUTeVuK';
-	protected $BUCKET_ID  = 'Identify';
+	protected $BUCKET_ID  = 'images';
 	/*const BUCKET_LICENCE = 'Licence';
 	const BUCKET_VEHICLE = 'Vehicle';*/
 
@@ -26,20 +30,23 @@ class ImageUploader extends Job
 	private $type;
 	private $imageList;
 
+    //失败重试次数
+    public $tries = 1;
+
     /**
      * Create a new job instance.
      *
      * @return void
      */
-    public function __construct(Images $images ,$type, $imageList)
-    {
+    public function __construct(Images $imagesORM ,$type, $imageList)
+    {   
         //实例化鉴权类
      	$this->auth = new Auth($this->ACCESS_KEY, $this->SECRET_KEY);
      	$this->uploader = new UploadManager();
 
      	//Eloquent
      	$this->driver = SysAuth::guard('motorman')->user();
-     	$this->images = $images;
+     	$this->images = $imagesORM;
      	$this->type = $type;
 
      	$this->imageList = $imageList;
@@ -51,7 +58,7 @@ class ImageUploader extends Job
      * @return void
      */
     public function handle()
-    {
+    {   
         //上传ID照片
         switch ($this->type) {
         	case 'ID':
@@ -73,12 +80,13 @@ class ImageUploader extends Job
 
     //上传身份证图片
     private function uploadIDImage()
-    {
+    {   
     	//生成上传token
     	$token = $this->auth->uploadToken($this->BUCKET_ID);
 
     	// 要上传文件的本地路径
 		$filePath = $this->TransformImage($this->imageList);
+
 
 		//上传后保存的名称
 		$key = array(
@@ -92,23 +100,27 @@ class ImageUploader extends Job
 
 		//信息入库
         $this->images->did = $this->driver->did;
-        $this->images->front_url = $res['front'];
-        $this->images->back_url = $res['back'];
+        $host = 'http://' . env('QINIU_HOST') . '/';
+
+        $this->images->url_front = $host . $res['front'][0]['key'];
+        $this->images->url_back = $host . $res['back'][0]['key'];
         $this->images->save();
 
         //删除本地图片
-        $this->unlink($filePath['front']);
-        $this->unlink($filePath['back']);
+        $this->RemoveImage($filePath['front']);
+        $this->RemoveImage($filePath['back']);
     }
 
     //上传驾驶证图片
     private function uploadLicenceImage()
     {
         //生成上传token
-        $token = $this->auth->uploadToken(BUCKET_ID);
+        $token = $this->auth->uploadToken($this->BUCKET_ID);
 
         // 要上传文件的本地路径
         $filePath = $this->TransformImage($this->imageList);
+
+        print_r($filePath);
 
         //上传后文件名称
         $key = $this->dirver->file_num . '_drivingLicence.jpg';
@@ -128,10 +140,10 @@ class ImageUploader extends Job
 
 
     /**
-     * 生成图片
+     * Base64转图片
      */
     private function TransformImage($images)
-    {
+    {   
     	if(is_array($images)){
     		$res = array();
     		foreach ($images as $key => $value) {
@@ -140,7 +152,7 @@ class ImageUploader extends Job
     		return $res;
     	}else{
     		$imageName = date("His",time())."_".rand(1111,9999).'.jpg';
-    		$filename = getcwd() . '/images/' . $imageName;
+    		$filename = getcwd() . '/public/images/' . $imageName;
     		$res = file_put_contents($filename, base64_decode($images));
     		return $res ? $filename : false;
     	}
@@ -150,7 +162,7 @@ class ImageUploader extends Job
      * 删除图片
      */
    	private function RemoveImage($filename)
-   	{
+   	{   
    		unlink($filename);
    	}
 

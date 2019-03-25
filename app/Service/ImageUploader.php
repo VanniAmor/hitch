@@ -14,7 +14,7 @@ class ImageUploader
 {
 	protected $ACCESS_KEY = 'YBEYWaqwXhGNpNIuEOsuSyLtQ0i0b34gobjSYsKL';
 	protected $SECRET_KEY = '3BCpdcLZZ3wXw-l5psmu-D8RHjnmmlJnciUTeVuK';
-	protected $BUCKET_ID  = 'Identify';
+	protected $BUCKET_ID  = 'images';
 	/*const BUCKET_LICENCE = 'Licence';
 	const BUCKET_VEHICLE = 'Vehicle';*/
 
@@ -35,7 +35,6 @@ class ImageUploader
     {
         //实例化鉴权类
      	$this->auth = new Auth($this->ACCESS_KEY, $this->SECRET_KEY);
-
      	$this->uploader = new UploadManager();
 
      	//Eloquent
@@ -90,14 +89,13 @@ class ImageUploader
 
 		// 调用 UploadManager 的 putFile 方法进行文件的上传。
 		$res['front'] = $this->uploader->putFile($token, $key['front'], $filePath['front']);
-		//$res['back'] = $this->uploader->putFile($token, $key['back'], $filePath['back']);
-
-		var_dump($res);
+		$res['back'] = $this->uploader->putFile($token, $key['back'], $filePath['back']);
 
 		//信息入库
         $this->images->did = $this->driver->did;
-        $this->images->front_url = $res['front'];
-        $this->images->back_url = $res['back'];
+        $host = 'http://' . env('QINIU_HOST') . '/';
+        $this->images->front_url = $host . $res['front'];
+        $this->images->back_url = $host . $res['back'];
         $this->images->save();
 
 		//删除本地图片
@@ -120,6 +118,7 @@ class ImageUploader
     		$imageName = date("His",time())."_".rand(1111,9999).'.jpg';
             $filename = getcwd() . '/images/' . $imageName;
     		$res = file_put_contents($filename, base64_decode($images));
+            var_dump($res);
     		return $res ? $filename : false;
     	}
     }

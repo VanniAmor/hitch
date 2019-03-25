@@ -7,7 +7,8 @@ use Illuminate\Support\Facades\Auth;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use App\Model\Images\IDImage;
 use Illuminate\Http\Request;
-use App\Service\ImageUploader;
+//use App\Service\ImageUploader;
+use App\Jobs\ImageUploader;
 
 class TestController extends Controller{
 
@@ -22,9 +23,9 @@ class TestController extends Controller{
 		$imageList['back']	= $this->imgToBase64( $back_img->getRealPath() );
 
 		$IDImage = IDImage::firstOrNew(['did' => $driver->did]);
-		//$this->dispatch(new ImageUploader($IDImage,'ID',$imageList));
-		$Uploader =  new ImageUploader($IDImage,'ID',$imageList);
-		$res = $Uploader->handle();
+		dispatch(new ImageUploader($IDImage,'ID',$imageList));
+		/*$Uploader =  new ImageUploader($IDImage,'ID',$imageList);
+		$res = $Uploader->handle();*/
 	}
 
 	/**

@@ -8,7 +8,6 @@ use App\Model\Images\Images;
 class VehicleImage extends Images
 {
     public $table = "vehicle_img";
-    public $timestamps = false;
 
     /**
      * The attributes that are mass assignable.

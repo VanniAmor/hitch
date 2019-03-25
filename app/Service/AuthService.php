@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Foundation\Bus\DispatchesJobs;
 use App\Jobs\ImageUploader;
+use App\Jobs\TestJob;
 use App\Model\Images\IDImage;
 use App\Model\Images\LicenceImage;
 use App\Model\Images\VehicleImage;
@@ -13,7 +14,8 @@ use App\Model\Images\VehicleImage;
 
 class AuthService
 {
-	use DispatchesJobs;
+	//use DispatchesJobs;
+
 	protected $MAX_SIZE = 4 * 1024 * 1024;
 
 	protected $client;
@@ -46,16 +48,18 @@ class AuthService
 		$options["detect_risk"] = "false";
 
 		//发送验证
-		$front_res = $this->client->idcard($front_img,'front',$options);
-		$back_res = $this->client->idcard($back_img,'back',$options);
+		//$front_res = $this->client->idcard($front_img,'front',$options);
+		//$back_res = $this->client->idcard($back_img,'back',$options);
 
 		//通过验证,身份信息入库
-		$this->handleIDAuthRes($front_res,$back_res);
+		//$this->handleIDAuthRes($front_res,$back_res);
 
 		//图片保存
 		$IDImage = IDImage::firstOrNew(['did' => $this->driver->did]);
 
-		$this->dispatch(new ImageUploader($IDImage,'ID',$imageList));
+		//dispatch(new TestJob('Hello World'));
+
+		dispatch(new ImageUploader($IDImage,'ID',$imageList));
 
 		return true;
 	}
