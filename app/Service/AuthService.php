@@ -10,6 +10,9 @@ use App\Jobs\TestJob;
 use App\Model\Images\IDImage;
 use App\Model\Images\LicenceImage;
 use App\Model\Images\VehicleImage;
+use App\Model\Licence\VehicleLicence;
+use App\Model\Licence\CertificateComparison;
+use Illuminate\Support\Facades\DB; 
 
 
 class AuthService
@@ -66,7 +69,7 @@ class AuthService
 
 
 	/**
-	 * 司机驾驶证验证
+	 * 司机驾驶证验证 driving_licence
 	 */
 	public function licenceAuth(Request $request)
 	{
@@ -90,7 +93,38 @@ class AuthService
 		//图片保存
 		$LicenceImage = LicenceImage::firstOrNew(['did' => $this->driver->did]);
 
-		$this->dispatch(new ImageUploader($LicenceImage,'LICENCE',$$licence_img));
+		$this->dispatch(new ImageUploader($LicenceImage,'LICENCE',$licence_img));
+
+		return true;
+	}
+
+
+	/**
+	 * 车辆行驶证验证 vehicle_licence
+	 */
+	public function vehicleAuth(Request $request)
+	{
+		$vehicle_licence_img = urldecode( $request->input('vehicle_licence') );
+
+		//去除baase64头部,并urlencode编码
+		//若使用百度的SDK,不需要手动进行urlencode编码
+		$vehicle_licence_img = substr(strstr($vehicle_licence_img,','), 1);
+
+		//接口可选参数
+		$options = array();
+		$options["detect_direction"] = "true";
+		$options["detect_risk"] = "false";
+
+		// 发送验证
+		$image_res = $this->client->vehicleLicense($image, $options);
+
+		//信息入库
+		$vid = $this->handleVehicleLicenceAuthRes($image_res);
+
+		//图片保存
+		$VehicleImage = LicenceImage::firstOrNew(['vid' => $vid]);
+
+		$this->dispatch(new ImageUploader($VehicleImage,'LICENCE',$vehicle_licence_img));
 
 		return true;
 	}
@@ -162,6 +196,59 @@ class AuthService
 
 		//信息入库
 		return $this->driver->save();
+	}
+
+
+	/**
+	 * 处理行驶证验证信息
+	 * 1. vehicle_licence_info 行驶证信息表
+	 * 2. certificate_comparison 司机--行驶证对照表
+	 */
+	private function handleVehicleLicenceAuthRes($image_res)
+	{
+		$res_data = $image_res['words_result'];
+		DB::beginTransaction();
+
+		try{
+			/*************************************行驶证信息部分*************************************/
+
+			//车牌号码
+			$vehicleLicence['plate_num'] = $res_data['号牌号码']['words'];
+			//车辆类型
+			$vehicleLicence['vehicle_type'] = $res_data['车辆类型']['words'];
+			//所有人
+			$vehicleLicence['owner'] = $res_data['所有人']['words'];
+			//地址
+			$vehicleLicence['address'] = $res_data['住址']['words'];
+			//VIN
+			$vehicleLicence['VIN'] = $res_data['车辆识别代号']['words'];
+			//EIN
+			$vehicleLicence['EIN'] = $res_data['发动机号码']['words'];
+			//注册日期
+			$vehicleLicence['reg_time'] = date_create_from_format('Ymd',$res_data['注册日期']['words']);
+			//发证日期
+			$vehicleLicence['issue_time'] = date_create_from_format('Ymd',$res_data['发证日期']['words']);
+			//使用性质
+			$vehicleLicence['purpose'] = $res_data['使用性质']['words'];
+			//品牌型号
+			$vehicleLicence['brand_model'] = $res_data['品牌型号']['words'];
+
+			$licence_id = VehicleLicence::getInsertId($vehicleLicence);
+
+			/*************************************对照表部分*************************************/
+
+			$comparison = new CertificateComparison;
+			$comparison->did = $this->driver->did;
+			$comparison->licence_id = $licence_id;
+			$comparison->application_date = date('Y-m-d');
+
+			$comparison->save();
+			DB::commit();
+			return $licence_id;
+		}catch (\Exception $e){
+			DB::rollBack();
+			return false;
+		}
 	}
 
 }

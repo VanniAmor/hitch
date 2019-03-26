@@ -15,7 +15,7 @@ class LicenceImage extends Images
      * @var array
      */
     protected $fillable = [
-        'did','uid','url'
+        'vid','url'
     ];
 
     /**

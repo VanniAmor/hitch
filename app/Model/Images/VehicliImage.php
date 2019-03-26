@@ -15,7 +15,7 @@ class VehicleImage extends Images
      * @var array
      */
     protected $fillable = [
-        'did','vid','url'
+        'vid','url'
     ];
 
     /**
