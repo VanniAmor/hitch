@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Model\System\Driver;
 use App\Utils\SMS\SendTemplateSMS;
 use App\Model\System\TempPhone;
+use Illuminate\Support\Facades\Auth;
+use App\Model\Licence\VehicleLicence;
 
 class DriverService{
 
@@ -94,8 +96,21 @@ class DriverService{
 		$TempPhone->save();
 		return true;
 	}
+	
 
-	public function test($data){
-		return $data;
+	/**
+	 * 获取车辆信息
+	 */
+	public function getVehicleInfo(){
+		$driver = Auth::guard('motorman')->user();
+		$vehicleInfo = VehicleLicence::select('vehicle_licence_info.*','vehicle_licence_img.licence_img_url','vehicle_licence_img.vehicle_img_url')
+		->leftJoin('certificate_comparison',function($join){
+			$join->on('vehicle_licence_info.id', '=', 'certificate_comparison.licence_id');
+		})->leftJoin('vehicle_licence_img',function($join){
+			$join->on('vehicle_licence_img.vid', '=', 'vehicle_licence_info.id');
+		})
+		->where('certificate_comparison.did',$driver->did)
+		->get();
+		return $vehicleInfo;
 	}
 }

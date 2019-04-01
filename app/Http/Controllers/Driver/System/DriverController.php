@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Driver\System;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Service\System\DriverService;
+use Illuminate\Support\Facades\Auth;
 
 
 class DriverController extends Controller
@@ -37,5 +38,24 @@ class DriverController extends Controller
 		$res = $this->driverService->sendCode($request);
 		return response()->json($res);
 	}
+
+
+	/**
+	 * 获取司机信息
+	 */
+	public function getDriverInfo(){
+		$res = Auth::guard('motorman')->user();
+		return response()->json($res);
+	}
+
+
+	/**
+	 * 获取车辆信息
+	 */
+	public function getVehicleInfo(){
+		$res = $this->driverService->getVehicleInfo();
+		return response()->json($res);
+	}
+
 
 }

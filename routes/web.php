@@ -10,6 +10,8 @@
 | and give it the Closure to call when that URI is requested.
 |
 */
+use Symfony\Component\HttpFoundation\Cookie;
+
 
 $router->get('/', function () use ($router) {
     return $router->app->version();
@@ -26,29 +28,38 @@ $api->version('driver', ['namespace' => 'App\Http\Controllers\Driver'], function
 	$api->post('/send_code','System\DriverController@sendMessage');
 	$api->post('/login','LoginController@driverLogin');
 
-
-
 	$api->get('/redis',function(){
 		app('redis')->set('lumen', 'Hello, Lumen.');
 		return app('redis')->get("lumen");
 	});
+	$api->get('/refresh','LoginController@driverRefresh');
 
+
+	//测试
+	$api->post('/imgclassify','Main\TestController@imgClassify');
 
 	//登录拦截
 	$api->group(['middleware' => 'auth:motorman'], function($api){
+		//Token刷新
+		
+		//项目首页
+		$api->get('/main','Main\IndexController@index');
 		//上传身份证
 		$api->post('/identify_auth','Auth\AuthController@identifyAuth');
 		//上传驾驶证
 		$api->post('/licence_auth','Auth\AuthController@licenceAuth');
 		//上传行驶证
 		$api->post('/vehicle_auth','Auth\AuthController@vehicleAuth');
-		//上传汽车照片
-		$api->post('/car_auth','Auth\Auth\AuthController@carAuth');
-		//项目首页
-		$api->get('/main','Main\IndexController@index');
+		//获取上下班路线
+		$api->get('/getRoute',function(){
+			return response($_SERVER['HTTP_ORIGIN']);
+		});
+		//获取司机信息
+		$api->get('/getDriverInfo','System\DriverController@getDriverInfo');
+		//获取我的车辆
+		$api->get('/getMyVehicle','System\DriverController@getVehicleInfo');
 
-		//测试
-		$api->post('/test','Main\TestController@index');
+
 	});
 });
 

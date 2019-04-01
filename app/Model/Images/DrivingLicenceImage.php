@@ -4,10 +4,10 @@ namespace App\Model\Images;
 
 use App\Model\Images\Images;
 
-
-class LicenceImage extends Images
+//驾驶证图片
+class DrivingLicenceImage extends Images
 {
-    public $table = "vehicle_licence_img";
+    public $table = "licence_img";
 
     /**
      * The attributes that are mass assignable.
@@ -15,7 +15,7 @@ class LicenceImage extends Images
      * @var array
      */
     protected $fillable = [
-        'vid','url'
+        'did','url'
     ];
 
     /**

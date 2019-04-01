@@ -4,7 +4,7 @@ namespace App\Model\Licence;
 
 use Illuminate\Database\Eloquent\Model;
 
-
+//行驶证 -- 司机 关联表
 class CertificateComparison extends Model
 {
     public $table = "certificate_comparison";

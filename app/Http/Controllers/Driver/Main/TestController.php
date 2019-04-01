@@ -46,4 +46,27 @@ class TestController extends Controller{
         }
 	}
 
+	public function imgClassify(Request $request){
+		$res = $request->input('res');
+
+		$res = json_decode($res,true);
+		var_dump($res['color_result']);
+		$result = $this->handelVehicleClasssifyRes( $res['result'] );
+		print_r($result);
+	}
+
+	/**
+	 * 处理车辆识别结果
+	 */
+	private function handelVehicleClasssifyRes($res){
+
+		$index = max(array_column($res, 'score'));
+		//车牌品牌
+		$result['name'] = $res[$index]['name'];
+		/*//车辆颜色
+		$result['color'] = $res['color_result'];*/
+
+		return $result;
+	}
+
 }

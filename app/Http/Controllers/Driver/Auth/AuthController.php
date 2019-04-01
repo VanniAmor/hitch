@@ -43,16 +43,6 @@ class AuthController extends Controller
 	}
 
 	/**
-	 * 车辆识别
-	 */
-	public function carAuth(Request $request)
-	{
-		$res = $this->authService->carAuth($request);
-		return response()->json($res);
-	}
-
-
-	/**
 	 * 司机登录
 	 */
 	public function driverLogin(Request $request){

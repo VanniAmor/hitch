@@ -73,9 +73,6 @@ class ImageUploader implements ShouldQueue
         		$this->uploadVehicleLicenceImage();
         		break;
 
-            case 'VEHICLE':
-                $this->uploadVehicliImage();
-
         	default:
         		return false;
         		break;
@@ -90,7 +87,6 @@ class ImageUploader implements ShouldQueue
 
     	// 要上传文件的本地路径
 		$filePath = $this->TransformImage($this->imageList);
-
 
 		//上传后保存的名称
 		$key = array(
@@ -149,14 +145,21 @@ class ImageUploader implements ShouldQueue
         $filePath = $this->TransformImage($this->imageList);
 
         //上传后文件名称
-        $key = $this->images->vid . '_vehicleLicence.jpg';
+        $key = array(
+            'vehicle_licence' => $this->images->vid . '_vehicleLicence.jpg',
+            'vehicle'  => $this->images->vid . '_vehicle.jpg'
+        );
 
         // 调用 UploadManager 的 putFile 方法进行文件的上传。
-        $res = $this->uploader->putFile($token,$key,$filePath);
+        $res = array(
+            'vehicle_licence' => $this->uploader->putFile($token,$key['vehicle_licence'],$filePath['vehicle_licence_img']),
+            'vehicle' => $this->uploader->putFile($token,$key['vehicle'],$filePath['vehicle_img']),
+        );
 
         //数据入库
         //暂时不清楚返回的数据结构
-        $this->images->url = $res;
+        $this->images->licence_img_url = $res['vehicle_licence'];
+        $this->images->vehicle_img_url = $res['vehicle'];
         $this->images->save();
 
         //删除本地图片

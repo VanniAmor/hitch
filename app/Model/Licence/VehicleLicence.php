@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class VehicleLicence extends Model
 {
-    public $table = "vehicle_licence";
+    public $table = "vehicle_licence_info";
 
     /**
      * The attributes that are mass assignable.

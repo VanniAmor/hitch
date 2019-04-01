@@ -13,7 +13,8 @@
         "baidu/aip-sdk": "^2.2",
         "predis/predis":"~1.0",
         "illuminate/redis": "v5.5.*",
-        "qiniu/php-sdk": "^7.2"
+        "qiniu/php-sdk": "^7.2",
+        "illuminate/cookie": "5.5.*"
     },
     "require-dev": {
         "fzaninotto/faker": "~1.4",

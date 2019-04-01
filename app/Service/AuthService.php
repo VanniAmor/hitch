@@ -8,8 +8,8 @@ use Illuminate\Foundation\Bus\DispatchesJobs;
 use App\Jobs\ImageUploader;
 use App\Jobs\TestJob;
 use App\Model\Images\IDImage;
-use App\Model\Images\LicenceImage;
-use App\Model\Images\VehicleImage;
+use App\Model\Images\DrivingLicenceImage;
+use App\Model\Images\VehicleLicenceImage;
 use App\Model\Licence\VehicleLicence;
 use App\Model\Licence\CertificateComparison;
 use Illuminate\Support\Facades\DB; 
@@ -22,10 +22,13 @@ class AuthService
 	protected $MAX_SIZE = 4 * 1024 * 1024;
 
 	protected $client;
+	protected $imgClassifyClient;
 	protected $driver;
+
 
 	public function __construct(){
 		$this->client = new \AipOcr(env('BAIDU_APPID'),env('BAIDU_APIKEY'),env('BAIDU_SECRET_KEY'));
+		$this->imgClassifyClient = new \AipImageClassify(env('BAIDU_APPID'),env('BAIDU_APIKEY'),env('BAIDU_SECRET_KEY'));
 		$this->driver = Auth::guard('motorman')->user();
 	} 
 
@@ -91,7 +94,7 @@ class AuthService
 		$this->handleLicenceAuthRes($licence_res);
 
 		//图片保存
-		$LicenceImage = LicenceImage::firstOrNew(['did' => $this->driver->did]);
+		$LicenceImage = DrivingLicenceImage::firstOrNew(['did' => $this->driver->did]);
 
 		$this->dispatch(new ImageUploader($LicenceImage,'LICENCE',$licence_img));
 
@@ -105,27 +108,39 @@ class AuthService
 	public function vehicleAuth(Request $request)
 	{
 		$vehicle_licence_img = urldecode( $request->input('vehicle_licence') );
+		$vehicle_img = urldecode( $request->input('vehicle') );
 
 		//去除baase64头部,并urlencode编码
 		//若使用百度的SDK,不需要手动进行urlencode编码
 		$vehicle_licence_img = substr(strstr($vehicle_licence_img,','), 1);
+		$vehicle_img = substr(strstr($vehicle_img,','), 1);
+		$imageList = array(
+			'vehicle_licence_img'	=>	$vehicle_licence_img, 
+			'vehicle_img'			=>  $vehicle_img
+		);
 
 		//接口可选参数
 		$options = array();
 		$options["detect_direction"] = "true";
 		$options["detect_risk"] = "false";
 
+		//接口可选参数(车辆识别)
+		$options_img = array();
+		$options_img["top_num"] = 3;
+		$options_img["baike_num"] = 5;
+
 		// 发送验证
-		$image_res = $this->client->vehicleLicense($image, $options);
+		$img_res['vehicleLicense_res'] = $this->client->vehicleLicense($vehicle_licence_img, $options);
+		//车辆识别，走的另外一个SDK
+		$img_res['vehicle_res'] = $this->imgClassifyClient->carDetect($vehicle_img, $options_img);
 
 		//信息入库
-		$vid = $this->handleVehicleLicenceAuthRes($image_res);
+		$vid = $this->handleVehicleLicenceAuthRes($img_res);
 
 		//图片保存
-		$VehicleImage = LicenceImage::firstOrNew(['vid' => $vid]);
+		$VehicleLicenceImage = VehicleLicenceImage::firstOrNew(['vid' => $vid]);
 
-		$this->dispatch(new ImageUploader($VehicleImage,'LICENCE',$vehicle_licence_img));
-
+		$this->dispatch(new ImageUploader($VehicleLicenceImage,'VEHICLE_LICENCE',$imageList));
 		return true;
 	}
 
@@ -205,8 +220,11 @@ class AuthService
 	 * 2. certificate_comparison 司机--行驶证对照表
 	 */
 	private function handleVehicleLicenceAuthRes($image_res)
-	{
-		$res_data = $image_res['words_result'];
+	{	
+		//SDK内部已做json_decode格式化
+		$res_data = $img_res['vehicleLicense_res']['words_result'];
+		$vehicle_classify_data = $this->handelVehicleClasssifyRes($img_res['vehicle_res']);
+
 		DB::beginTransaction();
 
 		try{
@@ -232,6 +250,10 @@ class AuthService
 			$vehicleLicence['purpose'] = $res_data['使用性质']['words'];
 			//品牌型号
 			$vehicleLicence['brand_model'] = $res_data['品牌型号']['words'];
+			//车辆品牌
+			$vehicleLicence['car_brand'] = $vehicle_classify_data['name'];
+			//车辆颜色
+			$vehicleLicense['color'] = $vehicle_classify_data['color'] ?? ''；
 
 			$licence_id = VehicleLicence::getInsertId($vehicleLicence);
 
@@ -250,5 +272,20 @@ class AuthService
 			return false;
 		}
 	}
+
+	/**
+	 * 处理车辆识别结果
+	 */
+	private function handelVehicleClasssifyRes($data){
+		$res = $data['result'];
+		$index = max(array_column($res, 'score'));
+		//车牌品牌
+		$result['name'] = $res[$index]['name'];
+		//车牌品牌
+		$result['color'] = $data['color_result']=='颜色无法识别'? '' : $data['color_result'];
+
+		return $result;
+	}
+
 
 }
