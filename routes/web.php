@@ -39,9 +39,7 @@ $api->version('driver', ['namespace' => 'App\Http\Controllers\Driver'], function
 	$api->post('/imgclassify','Main\TestController@imgClassify');
 
 	//登录拦截
-	$api->group(['middleware' => 'auth:motorman'], function($api){
-		//Token刷新
-		
+	$api->group(['middleware' => 'auth:motorman'], function($api){		
 		//项目首页
 		$api->get('/main','Main\IndexController@index');
 		//上传身份证
@@ -51,15 +49,25 @@ $api->version('driver', ['namespace' => 'App\Http\Controllers\Driver'], function
 		//上传行驶证
 		$api->post('/vehicle_auth','Auth\AuthController@vehicleAuth');
 		//获取上下班路线
-		$api->get('/getRoute',function(){
-			return response($_SERVER['HTTP_ORIGIN']);
-		});
+		$api->get('/getRoute','System\DriverController@getRoute');
+		//设置上下班路线
+		$api->post('/setRoute','System\DriverController@setRoute');
 		//获取司机信息
 		$api->get('/getDriverInfo','System\DriverController@getDriverInfo');
 		//获取我的车辆
 		$api->get('/getMyVehicle','System\DriverController@getVehicleInfo');
-
-
+		//更改行驶车辆
+		$api->get('/changeVehicle','System\DriverController@changeVehicle');
+		//获取用户路线
+		$api->get('/getPassengerRoute','System\DriverController@getPassengerRoute');
+		//开启监听模式
+		$api->get('/openListen','System\DriverController@openListen');
+		//获取订单信息
+		$api->get('/getOrder','System\DriverController@getOrder');
+		//下单
+		$api->get('/bookOrder','System\DriverController@bookOrder');
+		//获取订单详情
+		$api->get('/getOrderDetail','System\DriverController@getOrderDetail');
 	});
 });
 
@@ -72,13 +80,27 @@ $api->version('passenger', ['namespace' => 'App\Http\Controllers\Passenger'], fu
 	$api->post('/send_code','System\UserController@sendMessage');
 	$api->post('/login','LoginController@passengerLogin');
 
-
 	$api->group(['middleware' => 'auth:passenger'], function($api){
-		//项目首页
-		$api->get('/main','Main\IndexController@index');
-		
-
-
+		//获取用户信息
+		$api->get('/getUserInfo','System\UserController@getUserInfo');
+		//获取上下班路线
+		$api->get('/getRoute','System\UserController@getRoute');
+		//设置上下班路线
+		$api->post('/setRoute','System\UserController@setRoute');
+		//发布行程
+		$api->get('/publishTrip','System\UserController@publishTrip');
+		//取消订单
+		$api->get('/cancelTrip','System\UserController@cancelTrip');
+		//获取订单
+		$api->get('/getOrder','System\UserController@getOrder');
+		//获取订单详情
+		$api->get('/getOrderDetail','System\UserController@getOrderDetail');
+		//乘客确认上车
+		$api->get('/finishOrder','System\UserController@confirmOrder');
+		//获取行程列表
+		$api->get('/getRouteList','System\UserController@getRouteList');
+		//评价司机
+		$api->get('/evaluateDriver','System\UserController@evaluateDriver');
 	});
 
 });

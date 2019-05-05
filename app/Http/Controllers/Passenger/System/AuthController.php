@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Driver\Auth;
+namespace App\Http\Controllers\Passenger\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Service\AuthService;
@@ -16,7 +16,7 @@ class AuthController extends Controller
 	}
 
 	/**
-	 * 司机真实身份验证
+	 * 用户真实身份验证
 	 */
 	public function identifyAuth(Request $request)
 	{	
@@ -24,21 +24,5 @@ class AuthController extends Controller
 		return response()->json($res);
 	}
 
-	/**
-	 * 司机驾驶证验证
-	 */
-	public function licenceAuth(Request $request)
-	{
-		$res = $this->authService->licenceAuth($request);
-		return response()->json($res);
-	}
 
-	/**
-	 * 车辆行驶证验证
-	 */
-	public function vehicleAuth(Request $request)
-	{
-		$res = $this->authService->vehicleAuth($request);
-		return response()->json($res);
-	}
 }

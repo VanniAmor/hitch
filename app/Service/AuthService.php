@@ -33,7 +33,7 @@ class AuthService
 	} 
 
 	/**
-	 * 司机真实身份认证
+	 * 真实身份认证
 	 * @param  Request $request [description]
 	 * @return [type]           [description]
 	 */
@@ -54,17 +54,20 @@ class AuthService
 		$options["detect_risk"] = "false";
 
 		//发送验证
-		//$front_res = $this->client->idcard($front_img,'front',$options);
-		//$back_res = $this->client->idcard($back_img,'back',$options);
+		$front_res = $this->client->idcard($front_img,'front',$options);
+		$back_res = $this->client->idcard($back_img,'back',$options);
 
 		//通过验证,身份信息入库
-		//$this->handleIDAuthRes($front_res,$back_res);
+		$this->handleIDAuthRes($front_res,$back_res);
 
 		//图片保存
-		$IDImage = IDImage::firstOrNew(['did' => $this->driver->did]);
+		$IDImage = IDImage::where(['ID_number' => $front_res['words_result']['公民身份号码']['words']])->first();
+		if($IDImage) return true;
 
-		//dispatch(new TestJob('Hello World'));
+		$IDImage = new IDImage;
+		$IDImage->ID_number = $front_res['words_result']['公民身份号码']['words']];
 
+		//消息队列
 		dispatch(new ImageUploader($IDImage,'ID',$imageList));
 
 		return true;
@@ -94,8 +97,11 @@ class AuthService
 		$this->handleLicenceAuthRes($licence_res);
 
 		//图片保存
-		$LicenceImage = DrivingLicenceImage::firstOrNew(['did' => $this->driver->did]);
+		$LicenceImage = DrivingLicenceImage::where(['did' => $this->driver->did])->first();
+		if($LicenceImage) return true;
 
+		$LicenceImage = new DrivingLicenceImage;
+		$LicenceImage->did = $this->driver->did;
 		$this->dispatch(new ImageUploader($LicenceImage,'LICENCE',$licence_img));
 
 		return true;

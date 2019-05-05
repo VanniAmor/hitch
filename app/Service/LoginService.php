@@ -24,9 +24,11 @@ class LoginService
 
 		//$token = $this->jwt->auth('passenger')->attempt($data);
 		$token = Auth::guard('passenger')->attempt($data);
+		$user = Auth::guard('passenger')->user();
 
 		return [
-			'token' => 'bearer' . $token
+			'token' => 'bearer' . $token,
+			'uid'	=> $user->uid
 		];
 	}
 
@@ -38,8 +40,10 @@ class LoginService
 		$data = $request->only('mobile','password');
 		//$token = $this->jwt->guard('driver')->attempt($data);
 		$token = Auth::guard('motorman')->attempt($data);
+		$driver = Auth::guard('motorman')->user();
 		return [
-			'token' => 'bearer' . $token
+			'token' => 'bearer' . $token,
+			'did'	=> $driver->did
 		];
 	}
 

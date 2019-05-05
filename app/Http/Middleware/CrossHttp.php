@@ -52,11 +52,12 @@ class CrossHttp
         foreach ($this->headers as $key => $value) {
             $response->header($key, $value);
         }
-        if (in_array($origin, $this->allow_origin)) {
+        $response->header('Access-Control-Allow-Origin', '*');
+        /*if (in_array($origin, $this->allow_origin)) {
             $response->header('Access-Control-Allow-Origin', $origin);
         } else {
             $response->header('Access-Control-Allow-Origin', '*');
-        }
+        }*/
         return $response;
     }
 }

@@ -4,7 +4,6 @@ namespace App\Model\Licence;
 
 use Illuminate\Database\Eloquent\Model;
 
-
 class VehicleLicence extends Model
 {
     public $table = "vehicle_licence_info";

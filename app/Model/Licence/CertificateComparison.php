@@ -19,7 +19,7 @@ class CertificateComparison extends Model
      * 
      */
     protected $fillable = [
-        'did','licence_id','application_date','checked','status'
+        'did','licence_id','application_date','checked', 'using', 'status'
     ];
 
     /**
