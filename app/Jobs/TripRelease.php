@@ -73,7 +73,6 @@ class TripRelease extends Job
             //推送信息
             $this->publishTrip($key, $value);
         }
-
     }
 
     //5. 向指定的频道推送信息
@@ -91,7 +90,7 @@ class TripRelease extends Job
         $res = $this->posturl($url, $data);
     }
 
-
+     // 计算乘客对应Redis-Key值
      private function getAddress($longitude, $latitude)
     {
         $ak = env('BAIDU_MAP_AK');

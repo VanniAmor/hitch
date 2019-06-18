@@ -5,7 +5,15 @@ namespace App\Http\Controllers\Driver\Auth;
 use App\Http\Controllers\Controller;
 use App\Service\AuthService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
+use App\Model\Images\DrivingLicenceImage;
+use App\Model\Images\VehicleLicenceImage;
+use App\Model\Licence\VehicleLicence;
+use App\Model\Licence\CertificateComparison;
+use Illuminate\Support\Facades\DB; 
+/*use App\Jobs\ImageUploader;*/
+use App\Service\ImageUploader;
 
 class AuthController extends Controller
 {
@@ -33,12 +41,14 @@ class AuthController extends Controller
 		return response()->json($res);
 	}
 
+
 	/**
 	 * 车辆行驶证验证
 	 */
 	public function vehicleAuth(Request $request)
-	{
+	{	
 		$res = $this->authService->vehicleAuth($request);
 		return response()->json($res);
 	}
+
 }

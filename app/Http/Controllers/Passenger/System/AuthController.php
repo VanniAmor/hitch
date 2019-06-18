@@ -11,8 +11,9 @@ class AuthController extends Controller
 {
 	protected $authService;
 
-	public function __construct(AuthService $authService){
-		$this->authService = $authService;
+	public function __construct(){
+		//userType = 2, 用户类型为乘客
+		$this->authService = new AuthService(2);
 	}
 
 	/**

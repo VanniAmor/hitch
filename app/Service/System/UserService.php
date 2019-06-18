@@ -57,11 +57,11 @@ class UserService{
 			//用户已经存在
 			return array('status' => 90001,'message' => '用户已经存在');
 		}
- 		//发送短信
+ 		// 初始化SDK
 	    $sendTemplateSMS = new SendTemplateSMS;
 	    $code = mt_rand(1000,9999);
-	    //短信服务已过期！！
-	    //$res = $sendTemplateSMS->sendTemplateSMS($mobile, array($code, 60), 1);
+	    // 发送短信
+	    $res = $sendTemplateSMS->sendTemplateSMS($mobile, array($code, 60), 1);
 	    $res = array('status' => 0, 'message' => '发送成功');
 
 	    if($res['status'] == 0){
@@ -141,16 +141,32 @@ class UserService{
 
 	}
 
+    // 獲取附近上車點
+    public function getNearBy(Request $request)
+    {
+        $point = $request->input('point');
+        $point = json_decode($point, true);
+        $lng = $point['lng'];
+        $lat = $point['lat'];
+        $ak = env('BAIDU_MAP_AK');
+        $url = "http://api.map.baidu.com/parking/search?location=$lng,$lat&coordtype=bd09ll&ak=$ak";
+        $res = $this->geturl($url);
+        return $res;
+    }
+
 
 	/**
 	 * 乘客发布行程
+     *  前置(身份证信息通过验证)
 	 * 1. 获取乘客路线信息
 	 * 2. 行程信息入库
 	 * 
 	 * 3. 计算出路线Key
 	 * 4. 根据Key获取到司机列表
-	 * 5. 把行程ID trip_id推送到司机队列中,推送频道名称为计算出的Key
-	 * 6. 行程ID放入Redis集合中
+     * 5. 计算司机的出行路线，计算自己的出行路线
+     * 6. 出行路线比较，重复率大于70%，则匹配
+	 * 7. 把行程ID trip_id推送到司机队列中,推送频道名称为计算出的Key
+	 * 8. 行程ID放入Redis集合中
 	 *
 	 * 步骤3-6 是可以异步执行的,放置到消息队列中执行
 	 *
@@ -159,8 +175,30 @@ class UserService{
 	 */
 	public function publishTrip($type)
 	{
+        $passenger = Auth::guard('passenger')->user();
+	    //前置检测
+        switch ($passenger->checked) {
+       	    case 0:
+                #未上传
+                return array('status' => 40000, 'message' => '请先上传身份证信息');
+                break;
+            case 1:
+                #审核中
+                return array('status' => 40001, 'message' => '您的身份证信息仍在审核中');
+                break;
+            case 2:
+                #通过
+                break;
+            case -1:
+                #不通过
+                return array('status' => 40004, 'message' => '您的身份证信息未能通过审核,请重新上传');
+            default:
+                #异常
+                return array('status' => 40005, 'message' => '系统异常,请重试');
+                break;
+        }
+
 		//1. 获取到乘客路线信息
-		$passenger = Auth::guard('passenger')->user();
 		$commute_list = PassengerRoute::where(['uid' => $passenger->uid])->get()->toArray();
 		$commuteInfo = null;
 		if(!$commute_list) return false;
@@ -197,7 +235,7 @@ class UserService{
 
 		//3. 行程ID放到Redis集合中(测试使用,到时直接使用消息队列)
 		dispatch(new TripRelease($IDs, $passenger->uid));
-		/*$test = new TripRelease($IDs);
+		/*$test = new TripRelease($IDs, 5);
 		$test->handle();*/
 
 		return array('status' => 10000, 'message' => '发布成功', 'trip_ids' => $IDs);
@@ -243,7 +281,7 @@ class UserService{
 	//评价司机
 	public function evaluateDriver(Request $request)
 	{	
-		/*$record_id = $request->input('record_id');
+		$record_id = $request->input('record_id');
 		$rate = $request->input('rate', 3.8);
 
 		DB::beginTransaction();
@@ -252,23 +290,61 @@ class UserService{
 			$record = TripRecord::find($record_id);
 			$record->grade = $rate;
 			$record->save();
-	
+
 			//计算司机服务信息
-			$driverServiceInfo = DriverServiceInfo::find(['did' => $record->did]);
+			$driverServiceInfo = DriverServiceInfo::find($record->did);
 			//总评分
-			$totalRate = ($driverServiceInfo->total_service) * $driverServiceInfo->service_grade + $rate;
+			$totalRate = ($driverServiceInfo->total_service - 1) * $driverServiceInfo->service_grade + $rate;
 			//平均服务评分
 			$driverServiceInfo->service_grade = round($totalRate / $driverServiceInfo->total_service, 2);
 			$driverServiceInfo->save();
 			
 			Db::commit();
 			return array('status' => 10000, 'message' => '操作成功');
-		}catch{
+		} catch (Exception $e) {
 			Db::rollBack();
 			return array('status' => 10001, 'message' => '失败');
-		}*/
-
+		}
 	}
+
+    /**
+     * 取消订单
+     * @return mixed
+     */
+    public function delOrder(Request $request)
+    {
+        $record_id = $request->input('record_id');
+        //改变记录状态
+        DB::beginTransaction();
+        try{
+            $record = TripRecord::find($record_id);
+            $record->status = -1;
+            $record->save();
+            $tripRelease = PublishTrip::find($record->release_id);
+            $tripRelease->status = -1;
+            $tripRelease->save();
+            /* 应该有操作去通知司机，但是短信通知需要收费，砍掉 */
+            DB::commit();
+            return array('status' => 10000, 'message' => '操作成功');
+        } catch (\Exception $e) {
+            DB::rollback();
+            return array('status' => 10001, 'message' => '失败');
+        }
+    }
+
+    private function geturl($url){
+        $headerArray =array("Content-type:application/json;","Accept:application/json");
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, FALSE);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_HTTPHEADER,$headerArray);
+        $output = curl_exec($ch);
+        curl_close($ch);
+        $output = json_decode($output,true);
+        return $output;
+    }
 
 	public function test($data){
 		return $data;

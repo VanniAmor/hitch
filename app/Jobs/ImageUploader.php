@@ -5,7 +5,9 @@ namespace App\Jobs;
 //引入七牛云SDK
 use Qiniu\Auth;
 use Qiniu\Storage\UploadManager;
-use App\Model\Images\Images;
+use App\Model\Images\IDImage;
+use App\Model\Images\DrivingLicenceImage;
+use App\Model\Images\VehicleLicenceImage;
 use Illuminate\Support\Facades\Auth as SysAuth;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Bus\Queueable;
@@ -13,9 +15,10 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 
 
 //图片上传类
-class ImageUploader implements ShouldQueue
+/*class ImageUploader implements ShouldQueue*/
+class ImageUploader extends Job
 {
-    use InteractsWithQueue, Queueable;
+   /* use InteractsWithQueue, Queueable;*/
 	protected $ACCESS_KEY = 'YBEYWaqwXhGNpNIuEOsuSyLtQ0i0b34gobjSYsKL';
 	protected $SECRET_KEY = '3BCpdcLZZ3wXw-l5psmu-D8RHjnmmlJnciUTeVuK';
 	protected $BUCKET_ID  = 'images';
@@ -38,7 +41,7 @@ class ImageUploader implements ShouldQueue
      *
      * @return void
      */
-    public function __construct(Images $imagesORM ,$type, $imageList)
+    public function __construct($imageID ,$type, $imageList)
     {   
         //实例化鉴权类
      	$this->auth = new Auth($this->ACCESS_KEY, $this->SECRET_KEY);
@@ -46,9 +49,8 @@ class ImageUploader implements ShouldQueue
 
      	//Eloquent
      	$this->driver = SysAuth::guard('motorman')->user();
-     	$this->images = $imagesORM;
      	$this->type = $type;
-
+        $this->images = $imageID;
      	$this->imageList = $imageList;
     }
 
@@ -62,17 +64,17 @@ class ImageUploader implements ShouldQueue
         //上传ID照片
         switch ($this->type) {
         	case 'ID':
+                $this->images = IDImage::find($this->images);
         		$this->uploadIDImage();
         		break;
-        	
         	case 'LICENCE':
-        		$this->uploadLicence();
+                $this->images = DrivingLicenceImage::find($this->images);
+        		$this->uploadLicenceImage();
         		break;
-
         	case 'VEHICLE_LICENCE':
+                $this->images = VehicleLicenceImage::find($this->images);
         		$this->uploadVehicleLicenceImage();
         		break;
-
         	default:
         		return false;
         		break;
@@ -101,13 +103,16 @@ class ImageUploader implements ShouldQueue
 		//信息入库
         $host = 'http://' . env('QINIU_HOST') . '/';
 
-        $this->images->url_front = $host . $res['front'][0]['key'];
-        $this->images->url_back = $host . $res['back'][0]['key'];
+        $this->images->url_front = $host . $key['front'];
+        $this->images->url_back = $host . $key['back'];
         $this->images->save();
 
         //删除本地图片
         $this->RemoveImage($filePath['front']);
         $this->RemoveImage($filePath['back']);
+
+        //通知管理员
+        $this->publishVerify(1);
     }
 
     //上传驾驶证图片
@@ -120,18 +125,21 @@ class ImageUploader implements ShouldQueue
         $filePath = $this->TransformImage($this->imageList);
 
         //上传后文件名称
-        $key = $this->dirver->file_num . '_drivingLicence.jpg';
+        $key = $this->driver->file_num . '_drivingLicence.jpg';
 
         // 调用 UploadManager 的 putFile 方法进行文件的上传。
         $res = $this->uploader->putFile($token,$key,$filePath);
 
         //数据入库
-        //还不清楚返回的数据结构
-        $this->images->url = $res;
+        $host = 'http://' . env('QINIU_HOST') . '/';
+        $this->images->url = $host . $key;
         $this->images->save();
 
         //删除图片
         $this->RemoveImage($filePath);
+
+        //通知管理员
+        $this->publishVerify(2);
     }
 
 
@@ -157,13 +165,18 @@ class ImageUploader implements ShouldQueue
         );
 
         //数据入库
-        //暂时不清楚返回的数据结构
-        $this->images->licence_img_url = $res['vehicle_licence'];
-        $this->images->vehicle_img_url = $res['vehicle'];
+        $host = 'http://' . env('QINIU_HOST') . '/';
+        $this->images->licence_img_url = $host . $key['vehicle_licence'];
+        $this->images->vehicle_img_url = $host . $key['vehicle'];
+        $this->images->updated_at = date('Y-m-d H:i:s');
         $this->images->save();
 
         //删除本地图片
-        $this->RemoveImage($filePath);
+        $this->RemoveImage($filePath['vehicle_licence_img']);
+        $this->RemoveImage($filePath['vehicle_img']);
+
+        //通知管理员
+        $this->publishVerify(3);
     }
 
     /**
@@ -193,4 +206,30 @@ class ImageUploader implements ShouldQueue
    		unlink($filename);
    	}
 
+
+    private function publishVerify($type)
+    {
+        //循环获取Redis队列的中司机信息,并推送信息
+        $url = 'http://' . env('GO_REST_HOST') . '/publish';
+
+        $data = array(
+            'appkey'    => env('GO_COMMON_KEY'),
+            'channel'   => 'Verify',
+            'content'   => $type
+        );
+        //发送推送请求
+        $res = $this->posturl($url, $data);
+    }
+
+    private function posturl($url,$data){
+        $ch = curl_init();
+        curl_setopt ( $ch, CURLOPT_URL, $url );//地址
+        curl_setopt ( $ch, CURLOPT_POST, 1 );//请求方式为post
+        curl_setopt ( $ch, CURLOPT_HEADER, 0 );//不打印header信息
+        curl_setopt ( $ch, CURLOPT_RETURNTRANSFER, 1 );//返回结果转成字符串
+        curl_setopt ( $ch, CURLOPT_POSTFIELDS, $data );//post传输的数据。
+        $output = curl_exec($ch);
+        curl_close($ch);
+        return json_decode($output,true);
+    }
 }

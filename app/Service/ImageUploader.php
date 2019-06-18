@@ -26,6 +26,9 @@ class ImageUploader
 	private $type;
 	private $imageList;
 
+    //失败重试次数
+    public $tries = 1;
+
     /**
      * Create a new job instance.
      *
@@ -51,23 +54,21 @@ class ImageUploader
      * @return void
      */
     public function handle()
-    {
+    {   
         //上传ID照片
         switch ($this->type) {
-        	case 'ID':
-        		$this->uploadIDImage();
-        		break;
-        	
-        	case 'LICENCE':
-        		$this->uploadLicence();
-        		break;
-
-        	case 'VEHICLE':
-        		$this->uploadVehicle();
-        		break;
-        	default:
-        		return false;
-        		break;
+            case 'ID':
+                $this->uploadIDImage();
+                break;
+            case 'LICENCE':
+                $this->uploadLicenceImage();
+                break;
+            case 'VEHICLE_LICENCE':
+                $this->uploadVehicleLicenceImage();
+                break;
+            default:
+                return false;
+                break;
         }
     }
 
@@ -94,13 +95,70 @@ class ImageUploader
 		//信息入库
         $this->images->did = $this->driver->did;
         $host = 'http://' . env('QINIU_HOST') . '/';
-        $this->images->front_url = $host . $res['front'];
-        $this->images->back_url = $host . $res['back'];
+        $this->images->url_front = $host . $res['front'][0]['key'];
+        $this->images->url_back = $host . $res['back'][0]['key'];
         $this->images->save();
 
 		//删除本地图片
 		$this->unlink($filePath['front']);
         $this->unlink($filePath['back']);
+    }
+
+
+    //上传驾驶证图片
+    private function uploadLicenceImage()
+    {
+        //生成上传token
+        $token = $this->auth->uploadToken($this->BUCKET_ID);
+
+        // 要上传文件的本地路径
+        $filePath = $this->TransformImage($this->imageList);
+
+        //上传后文件名称
+        $key = $this->driver->file_num . '_drivingLicence.jpg';
+
+        // 调用 UploadManager 的 putFile 方法进行文件的上传。
+        $res = $this->uploader->putFile($token,$key,$filePath);
+
+        //数据入库
+        $host = 'http://' . env('QINIU_HOST')
+        $this->images->url = $host . '/';$res[0]['key'];
+        $this->images->save();
+
+        //删除图片
+        $this->RemoveImage($filePath);
+    }
+
+
+    //上传行驶证图片
+    private function uploadVehicleLicenceImage()
+    {
+        //生成上传token
+        $token = $this->auth->uploadToken($this->BUCKET_ID);
+
+        // 要上传文件的本地路径
+        $filePath = $this->TransformImage($this->imageList);
+
+        //上传后文件名称
+        $key = array(
+            'vehicle_licence' => $this->images->vid . '_vehicleLicence.jpg',
+            'vehicle'  => $this->images->vid . '_vehicle.jpg'
+        );
+
+        // 调用 UploadManager 的 putFile 方法进行文件的上传。
+        $res = array(
+            'vehicle_licence' => $this->uploader->putFile($token,$key['vehicle_licence'],$filePath['vehicle_licence_img']),
+            'vehicle' => $this->uploader->putFile($token,$key['vehicle'],$filePath['vehicle_img']),
+        );
+
+        //数据入库
+        $host = 'http://' . env('QINIU_HOST') . '/';
+        $this->images->licence_img_url = $host . $res['vehicle_licence'][0]['key'];
+        $this->images->vehicle_img_url = $host . $res['vehicle'][0]['key'];
+        $this->images->save();
+
+        //删除本地图片
+        $this->RemoveImage($filePath);
     }
 
     /**

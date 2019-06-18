@@ -96,6 +96,13 @@ class DriverController extends Controller
 		return $res;
 	}
 
+	// 获取附近上车点
+    public function getNearBy(Request $request)
+    {
+        $res = $this->driverService->getNearBy($request);
+        return $res;
+    }
+
 	//开启订单监听
 	public function openListen(Request $request)
 	{	
@@ -107,8 +114,7 @@ class DriverController extends Controller
 
 	//获取订单信息
 	public function getOrder()
-	{	
-		
+    {
 		$driver = Auth::guard('motorman')->user();
 		$res = TripRecord::where(['did' => $driver->did, 'status' => 0])->get()->toArray();
 
@@ -188,6 +194,7 @@ class DriverController extends Controller
 		})->leftJoin('user',function($join){
 			$join->on('trip_release.uid', '=', 'user.uid');
 		})->whereIn('commute_trip_record.id', $record_ids)
+        ->where('commute_trip_record.status', '<>', '-1')
 		->get()
 		->toArray();
 
@@ -229,6 +236,31 @@ class DriverController extends Controller
 		return $res;
 	}
 
+	//获取订单列表
+	public function getRouteList(Request $request)
+	{
+		//起点、终点、发布时间
+		$status = $request->input('status');
+		$driver = Auth::guard('passenger')->user();
+
+		$records = TripRecord::select('commute_trip_record.id as record_id','trip_release.publish_time','passenger_commute_route.origin','passenger_commute_route.destination')
+			->leftJoin('trip_release',function($join){
+				$join->on('trip_release.id', '=', 'commute_trip_record.release_id');
+			})->leftJoin('passenger_commute_route', function($join){
+				$join->on('passenger_commute_route.id', '=', 'trip_release.commute_id');
+			})
+			->where(['commute_trip_record.status' => $status])
+			->paginate(5);
+
+		return $records;
+	}
+
+	//删除订单
+	public function delOrder(Request $request)
+	{
+		$res = $this->driverService->delOrder($request);
+		return $res;
+	}
 
 	//获取用户IP地址
 	private function getClientIP() {

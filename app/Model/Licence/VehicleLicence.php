@@ -26,7 +26,7 @@ class VehicleLicence extends Model
      * 
      */
     protected $fillable = [
-        'plate_number','vehicle_type','owner','address','VIN','EIN','reg_time','issue_time','purpose','brand_model','car_brand','color'
+        'plate_number','vehicle_type','onwer','address','VIN','EIN','reg_time','issue_time','purpose','brand_model','car_brand','color', 'created_at'
     ];
 
     /**

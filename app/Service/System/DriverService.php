@@ -12,6 +12,7 @@ use App\Model\Licence\CertificateComparison;
 use App\Model\Travel\DriverRoute;
 use App\Service\DriverChannel;
 use App\Model\Travel\PublishTrip;
+use App\Model\Travel\TripRecord;
 use Illuminate\Support\Facades\DB;
 
 class DriverService
@@ -117,6 +118,7 @@ class DriverService
 			$join->on('vehicle_licence_img.vid', '=', 'vehicle_licence_info.id');
 		})
 		->where('certificate_comparison.did',$driver->did)
+		->where('certificate_comparison.checked', '<>', 2)
 		->get();
 		return $vehicleInfo;
 	}
@@ -143,7 +145,7 @@ class DriverService
 			$value->using = 0;
 			$value->save();
 		}
-		return [];
+		return array('status' => 10000, 'message' => '操作成功');
 	}
 
 
@@ -195,6 +197,19 @@ class DriverService
 		return array('redis_key' => $redis_key, 'commute_id' => $driverRoute->id);
 	}
 
+	// 獲取附近上車點
+    public function getNearBy(Request $request)
+    {
+        $point = $request->input('point');
+        $point = json_decode($point, true);
+        $lng = $point['lng'];
+        $lat = $point['lat'];
+        $ak = env('BAIDU_MAP_AK');
+        $url = "http://api.map.baidu.com/parking/search?location=$lng,$lat&coordtype=bd09ll&ak=$ak";
+        $res = $this->geturl($url);
+        return $res;
+    }
+
 
 	/**
 	 * 接收订单,开启接单模式
@@ -206,10 +221,6 @@ class DriverService
 	public function openListen($redis_key)
 	{
 		$driver = Auth::guard('motorman')->user();
-		//1. 判断是否通过审核
-		if($driver->usable == 0 || $driver->checked == 0){
-			return array('status' => 10000, 'message' => '您还未通过系统审核');
-		}
 		
 		//2. 从Redis集合中查找是否有发布的路线
 		
@@ -267,7 +278,6 @@ class DriverService
 		DB::beginTransaction();
 		
 		//1. 生成订单
-		
 		$insert_res = DB::table('commute_trip_record')->insertGetId(
 			['release_id' => $trip_id, 'driver_commute_id' => $commute_id, 'did' => $driver->did, 'count' => $count, 'distance' => $distance]);
 		//2. 修改用户行程状态
@@ -283,7 +293,7 @@ class DriverService
 
 		//删除redis集合中对应的元素
 		$driver_commute_route = DB::table('driver_commute_route')->where('id',$commute_id)->get();
-		$redis_key = $driver_commute_route[0]->redis_key;
+		$redis_key = $driver_commute_route[0]->redis_key . ':trip';
 		app('redis')->srem($redis_key, $trip_id);
 		//删除redis的冗余key
 		app('redis')->del('passenger:' . $passenger_trip->uid . ':trip:' . $trip_id);
@@ -310,6 +320,52 @@ class DriverService
         );
         //发送推送请求
         $res = $this->posturl($url, $data);
+    }
+
+    public function delOrder(Request $request)
+    {
+        $record_id = $request->input('record_id');
+        //改变记录状态
+        DB::beginTransaction();
+        try{
+            $record = TripRecord::find($record_id);
+            $record->status = -1;
+            $record->save();
+            $tripRelease = TripRelease::find($record->release_id);
+            $tripRelease->status = -1;
+            $tripRelease->save();
+            /* 应该有操作去通知用户，但是短信通知需要收费，砍掉 */
+            /*$mobile = TripRecord::select('user.mobile')
+                ->leftJoin('trip_release', function($join){
+                    $join->on('trip_release.id', '=', 'commute_trip_record.release_id');
+                })->leftJoin('user', function($join){
+                    $join->on('trip_release.uid', '=', 'user.uid');
+                })->where(['commute_trip_record.id' => $record_id])
+                ->get()
+                ->toArray();*/
+
+            return array('status' => 10000, 'message' => '操作成功');
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollback();
+            return array('status' => 10001, 'message' => '失败');
+        }
+
+    	return array('status' => 10000, 'message' => '操作成功');
+    }
+
+    private function geturl($url){
+        $headerArray =array("Content-type:application/json;","Accept:application/json");
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, FALSE);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_HTTPHEADER,$headerArray);
+        $output = curl_exec($ch);
+        curl_close($ch);
+        $output = json_decode($output,true);
+        return $output;
     }
 
     private function posturl($url,$data){ 

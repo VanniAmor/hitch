@@ -70,6 +70,13 @@ class UserController extends Controller
 		
 	}
 
+    // 获取附近上车点
+    public function getNearBy(Request $request)
+    {
+        $res = $this->userService->getNearBy($request);
+        return $res;
+    }
+
 	/**
 	 * 获取上下班路线
 	 * @return [type] [description]
@@ -83,7 +90,7 @@ class UserController extends Controller
 		}else if($route_type == 'offwork'){
 			$res = PassengerRoute::where(['uid' => $user->uid, 'locale_type' => 2])->get()->toArray();
 		}else{
-			$res = PassengerRoute::where(['uid' => $user->uid])->get()->toArray();
+			$res = PassengerRoute::where(['uid' => $user->uid])->orderBy('locale_type')->get()->toArray();
 		}
 
 		return $res;
@@ -117,8 +124,10 @@ class UserController extends Controller
 				$redis_key = app('redis')->get('passenger:' . $user->uid . ':trip:' . $trip_id);
 				app('redis')->srem($redis_key,$trip_id);
 				app('redis')->del('passenger:' . $user->uid . ':trip:' . $trip_id);
-				//删除数据中的记录
-				PublishTrip::where('id', $trip_id)->delete();
+				//修改数据状态
+				$trip = PublishTrip::find($trip_id);
+				$trip->status = -1;
+				$trip->save();
 			}
 			return array('status' => 10000, 'message' => '成功取消订单');
 		} catch (Exception $e) {
@@ -140,12 +149,11 @@ class UserController extends Controller
 		return $res;
 	}
 
-
 	//获取订单详情
 	public function getOrderDetail(Request $request)
 	{
 		//获取record_id
-		$record_ids = $request->input('record_ids');
+	    $record_ids = $request->input('record_ids');
 		//$record_ids = json_decode($record_ids,true);
 		
 		//获取当前订单的路线信息
@@ -234,33 +242,16 @@ class UserController extends Controller
 
 	//用户评价司机
 	public function evaluateDriver(Request $request){
-		/*$res = $this->evaluateDriver($request);
-		return $res;*/
-		$record_id = $request->input('record_id');
-		$rate = $request->input('rate', 3.8);
-
-		DB::beginTransaction();
-		try {
-			//修改记录评价
-			$record = TripRecord::find($record_id);
-			$record->grade = $rate;
-			$record->save();
-
-			//计算司机服务信息
-			$driverServiceInfo = DriverServiceInfo::find($record->did);
-			//总评分
-			$totalRate = ($driverServiceInfo->total_service - 1) * $driverServiceInfo->service_grade + $rate;
-			//平均服务评分
-			$driverServiceInfo->service_grade = round($totalRate / $driverServiceInfo->total_service, 2);
-			$driverServiceInfo->save();
-			
-			Db::commit();
-			return array('status' => 10000, 'message' => '操作成功');
-		} catch (Exception $e) {
-			Db::rollBack();
-			return array('status' => 10001, 'message' => '失败');
-		}
+		$res = $this->evaluateDriver($request);
+		return $res;
 	}
+
+	//取消订单
+	public function delOrder(Request $request)
+    {
+        $res = $this->userService->delOrder($request);
+        return $res;
+    }
 
 	//获取用户IP地址
 	private function getClientIP() {
