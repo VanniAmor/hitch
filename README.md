@@ -53,6 +53,9 @@ Vanni辉的大学毕业项目，课题【基于百度地图的拼车网设计与
 ![路线计算](https://note.youdao.com/yws/api/personal/file/66B21870F92844A9B15F82FDF6C33F4E?method=download&shareKey=b3e65c68db214a5d12987181bbe69833 "路线计算")
 ![出行信息](https://note.youdao.com/yws/api/personal/file/04812D9CFA994D4889FB9B3E7552B7A8?method=download&shareKey=e2bf8078839e5e8a29d58ab478bc9827 "出行信息")
 
+[后端配置说明]: https://github.com/VanniAmor/hitch/wiki/%E5%90%8E%E7%AB%AF%E9%A1%B9%E7%9B%AE%E7%9A%84%E9%85%8D%E7%BD%AE "后端配置说明"
+[前端配置说明]: https://github.com/VanniAmor/vanni_hitch_driver/wiki "前端配置说明"
+
 
 # 有问题
 
