@@ -18,27 +18,17 @@ Vanni辉的大学毕业项目，课题【基于百度地图的拼车网设计与
 
 ## 项目介绍
 
-### 后端
-项目使用Lumen + Dingo进行搭建，使用到的技术有：
+上下班拼车，预约出行，绿色环保，节能减排
 
-- JWTAuth： token令牌验证
-- Redis：消息队列、缓存乘客发布的路线
-- 第三方技术
- - 百度地图
- - 百度文字识别
- - GoEasy信息推送
- - 七牛云对象存储
- - 短信服务
+- 司机端地址：https://github.com/VanniAmor/vanni_hitch_driver
+- 乘客端地址：https://github.com/VanniAmor/vanni_hitch_driver
 
-### 前端
-项目分为司机端和乘客端，使用到的相关技术有：
+`项目仅做学习和交流，请勿用作商业用途和销售获利`
 
-- MUI：轻便的、H5+开发框架，能使用html编写手机App应用，负责项目的事件处理和项目架构
-- Vue：负责数据绑定和渲染
-- Axios：网络请求的发布和处理
-- 第三方技术
-  - 百度地图
-  - GoEasy信息推送
+## 如何配置
+
+- [后端配置说明][后端配置说明]
+- [前端配置说明][前端配置说明]
 
 ### 已实现的功能
 *注： 这里的用户没有指明，就是指司机和乘客
@@ -63,4 +53,10 @@ Vanni辉的大学毕业项目，课题【基于百度地图的拼车网设计与
 ![路线计算](https://note.youdao.com/yws/api/personal/file/66B21870F92844A9B15F82FDF6C33F4E?method=download&shareKey=b3e65c68db214a5d12987181bbe69833 "路线计算")
 ![出行信息](https://note.youdao.com/yws/api/personal/file/04812D9CFA994D4889FB9B3E7552B7A8?method=download&shareKey=e2bf8078839e5e8a29d58ab478bc9827 "出行信息")
 
+
+# 有问题
+
+可以通过以下方式联系我，或者到issue提问
+- email： 1226066980@qq.com
+- wx：L1226066980
 
