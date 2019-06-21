@@ -7,6 +7,7 @@ Vanni辉的大学毕业项目，课题【基于百度地图的拼车网设计与
 - Mysql5.7及以上
 
 *注： PHP需要开启CURL拓展
+
     # 安装项目依赖
     Composer install
 
