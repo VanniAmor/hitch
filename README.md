@@ -15,7 +15,6 @@ Vanni辉的大学毕业项目，课题【基于百度地图的拼车网设计与
     php artisan queue:listen
 
 
-
 ## 项目介绍
 
 上下班拼车，预约出行，绿色环保，节能减排
@@ -30,7 +29,7 @@ Vanni辉的大学毕业项目，课题【基于百度地图的拼车网设计与
 - [后端配置说明][后端配置说明]
 - [前端配置说明][前端配置说明]
 
-### 已实现的功能
+## 已实现的功能
 *注： 这里的用户没有指明，就是指司机和乘客
 
 - 用户的登录注册
@@ -44,7 +43,7 @@ Vanni辉的大学毕业项目，课题【基于百度地图的拼车网设计与
 - 乘客确定上车
 - 用户取消订单
 
-# 效果图
+## 效果图
 
 ![首页](https://note.youdao.com/yws/api/personal/file/04EE18E467454C7086AD1775F25524DC?method=download&shareKey=2e02ab4f920df31ae97236181954d20a "首页")
 ![个人中心](https://note.youdao.com/yws/api/personal/file/E61D3C66C52D4850B1439B0F3BF772A0?method=download&shareKey=ed41b0a0e75620116795f5201483f515 "个人中心")
@@ -57,7 +56,7 @@ Vanni辉的大学毕业项目，课题【基于百度地图的拼车网设计与
 [前端配置说明]: https://github.com/VanniAmor/vanni_hitch_driver/wiki "前端配置说明"
 
 
-# 有问题
+## 有问题
 
 可以通过以下方式联系我，或者到issue提问
 - email： 1226066980@qq.com
