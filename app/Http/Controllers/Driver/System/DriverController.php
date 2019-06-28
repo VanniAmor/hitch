@@ -140,7 +140,7 @@ class DriverController extends Controller
 		->where('trip_release.id',$trip_id)
 		->first();
  
- 		//其他顺路的路线及用户信息
+ 		//获取其他顺路的路线及用户信息
  		//即commute_trip_record表中相同司机,相同commute_id的路线
 		$hitchInfo = TripRecord::select('passenger_commute_route.*','user.mobile','user.sex','user.realname')
 		->leftJoin('trip_release', function($join){
