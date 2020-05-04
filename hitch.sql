@@ -120,14 +120,12 @@ CREATE TABLE `driver` (
   KEY `file_num` (`file_num`),
   KEY `first_issue` (`first_issue`),
   KEY `valid_period` (`effective_data`),
-  KEY `address` (`address`),
   KEY `issue_authority` (`issue_authority`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8 COMMENT='司机表';
 
 -- ----------------------------
 -- Records of driver
 -- ----------------------------
-INSERT INTO `driver` VALUES ('2', '$2y$10$.xe7ib6YIvS0OduHKi2CO.fqaF6ziUVlisvrSlxe/ryZ.O6asx.iy', '15521634926', '1', '22', '440682199606265071', '罗伟乐', '1996-06-26', '120106199902220224', '2015-12-31', 'C1', '2021-12-31', '2015-12-31', '广东省佛山市禅城区南庄镇南庄南三队大基街一巷7号', '佛山市公安局禅城分局', '2', '2', '1', '2019-03-21 01:19:48', '2019-06-01 05:50:48', null);
 
 -- ----------------------------
 -- Table structure for `driver_commute_route`
@@ -193,10 +191,6 @@ CREATE TABLE `driver_journey` (
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '记录修改时间',
   PRIMARY KEY (`id`),
   KEY `journey_did` (`did`),
-  KEY `journey_origin` (`origin`),
-  KEY `journey_destination` (`destination`),
-  KEY `journey_publish_time` (`publish_time`),
-  KEY `journey_depart_time` (`depart_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='司机发布的远途行程';
 
 -- ----------------------------
@@ -260,7 +254,6 @@ CREATE TABLE `identify_img` (
 -- ----------------------------
 -- Records of identify_img
 -- ----------------------------
-INSERT INTO `identify_img` VALUES ('3', '440682199606265071', 'http://zhifa.daiqee.com/440682199606265071_ID_front.jpg', 'http://zhifa.daiqee.com/440682199606265071_ID_back.jpg', '2019-05-16 17:02:43', '2019-05-16 17:02:43');
 
 -- ----------------------------
 -- Table structure for `licence_img`
@@ -273,7 +266,7 @@ CREATE TABLE `licence_img` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '记录创建时间',
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '记录修改时间',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8 COMMENT='车辆照片';
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8 COMMENT='驾驶证照片';
 
 -- ----------------------------
 -- Records of licence_img
@@ -313,18 +306,13 @@ CREATE TABLE `passenger_commute_route` (
   `depart_time` time NOT NULL DEFAULT '0000-00-00 00:00:00' COMMENT '出发时间',
   `arrive_time` time DEFAULT NULL COMMENT '到达时间',
   `person` tinyint(2) unsigned NOT NULL COMMENT '搭乘人数',
-  PRIMARY KEY (`id`),
-  KEY `origin` (`origin`),
-  KEY `company` (`destination`),
-  KEY `mileage` (`arrive_time`)
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8 COMMENT='乘客上下班路线表';
 
 -- ----------------------------
 -- Records of passenger_commute_route
 -- ----------------------------
-INSERT INTO `passenger_commute_route` VALUES ('1', '5', '2', '安定楼', '113.399009', '23.121698', '东盛写字楼', '113.397493', '23.122713', '08:00:00', '09:00:00', '1');
-INSERT INTO `passenger_commute_route` VALUES ('2', '5', '1', '学生宿舍海蓝-A栋', '110.30177795664', '21.160574889717', '大汉风火锅烤肉寿司自助餐(怡福店)', '110.41435009972', '21.199738676082', '08:38:00', '09:00:00', '1');
-INSERT INTO `passenger_commute_route` VALUES ('3', '2', '1', '浩景望江综合大楼', '113.401906', '23.115851', '宜家公寓(车陂)', '113.40038', '23.121947', '08:42:32', '09:42:52', '1');
+
 
 -- ----------------------------
 -- Table structure for `payment`
@@ -342,9 +330,7 @@ CREATE TABLE `payment` (
   `is_pay` tinyint(4) NOT NULL DEFAULT '0' COMMENT '是否支付0-否，1-是',
   PRIMARY KEY (`id`),
   KEY `payment_uid` (`uid`),
-  KEY `payment_payee` (`payee`),
-  KEY `payment_publish_time` (`publish_time`),
-  KEY `pay_time` (`pay_time`)
+  KEY `payment_payee` (`payee`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='支付记录';
 
 -- ----------------------------
@@ -3958,15 +3944,11 @@ CREATE TABLE `user` (
   PRIMARY KEY (`uid`),
   KEY `mobile_user` (`mobile`),
   KEY `ID_number_user` (`ID_number`),
-  KEY `realname` (`realname`)
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8 COMMENT='用户表';
 
 -- ----------------------------
 -- Records of user
 -- ----------------------------
-INSERT INTO `user` VALUES ('1', '13827715404', '440682199606265071', '1', '罗伟乐', null, null, null, 'Vanni辉', null, '123456', '1', '0', '123456', '-1', '2019-03-09 11:38:58', '2019-03-09 11:39:03', '');
-INSERT INTO `user` VALUES ('2', '13727319839', '440682199606265071', '1', 'Vanni', null, null, null, 'Vanni', null, '110000', '1', '0', '$2y$10$ucqO9n4DwVZjNjw7WpblxuUJvmJimxhd0v8EXBq8rHVuWJCmevyZG', '-1', '2019-03-11 22:42:37', '2019-03-11 22:42:37', null);
-INSERT INTO `user` VALUES ('5', '15521634926', '440682199606265071', '1', '罗伟乐', '23', '1996-06-26', '测试地址', '辉', '佛山市禅城区', '110000', '1', '0', '$2y$10$ucqO9n4DwVZjNjw7WpblxuUJvmJimxhd0v8EXBq8rHVuWJCmevyZG', '2', '2019-03-12 00:33:05', '2019-05-18 17:48:27', '');
 
 -- ----------------------------
 -- Table structure for `vehicle_exit_application`
@@ -4034,9 +4016,8 @@ CREATE TABLE `vehicle_licence_info` (
   KEY `vehicle_type` (`vehicle_type`),
   KEY `onwer` (`onwer`),
   KEY `VIN` (`VIN`),
-  KEY `EIN` (`EIN`),
-  KEY `reg_time` (`reg_time`),
-  KEY `purpose` (`purpose`)
+  KEY `EIN` (`EIN`)
+
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8 COMMENT='行驶证信息,车辆信息';
 
 -- ----------------------------
